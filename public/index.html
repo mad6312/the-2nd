@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The 2nd - あえて2位を狙う心理・知識ゲーム</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="app" class="app-container">
+
+        <!-- 常設ヘッダー -->
+        <header class="global-header">
+            <div class="logo-area">
+                <h1 class="logo-text">The 2nd <span class="logo-badge">あえて2位を狙え！</span></h1>
+            </div>
+            <div class="header-controls">
+                <button id="btn-open-settings" class="btn-icon" title="プレイヤー設定">
+                    ⚙️ <span id="header-player-name" class="header-player-name">プレイヤー</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- エラー・通知トースト -->
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- 画面1: ロビー画面 -->
+        <section id="view-lobby" class="view-section active">
+            <div class="lobby-card">
+                <h2 class="view-title">マッチングルーム</h2>
+                <p class="lobby-desc">「あえて2番目にメジャーだと思う回答」を出し合って、AIの2位判定を勝ち取れ！</p>
+
+                <!-- ルームステータスパネル -->
+                <div class="lobby-status-panel">
+                    <div class="status-item">
+                        <span class="status-label">現在の参加人数</span>
+                        <span id="lobby-player-count" class="status-value">0 / 10名</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">あなたの状態</span>
+                        <span id="lobby-my-status" class="badge badge-gray">未エントリー</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">現在のゲームモード</span>
+                        <span id="lobby-mode-display" class="badge badge-gold">スタンダード</span>
+                    </div>
+                </div>
+
+                <!-- ホスト専用：ゲームモード切り替え設定 -->
+                <div id="host-mode-control-wrap" class="mode-selector-panel hidden">
+                    <span class="mode-selector-title">【ホスト設定】ゲームモード切替</span>
+                    <div class="mode-button-group">
+                        <button type="button" id="btn-mode-standard" class="btn-mode active" data-mode="STANDARD">
+                            🏆 スタンダード (3pts先取)
+                        </button>
+                        <button type="button" id="btn-mode-endless" class="btn-mode" data-mode="ENDLESS">
+                            ♾️ エンドレス (全問出尽くすまで)
+                        </button>
+                    </div>
+                    <p id="mode-explanation-text" class="mode-explanation">
+                        スタンダード: 3ポイントを先取したプレイヤーが出た時点でゲーム終了・勝利となります。
+                    </p>
+                </div>
+
+                <!-- アクションボタン（エントリー / 開始） -->
+                <div class="lobby-action-row">
+                    <button id="btn-toggle-join" class="btn btn-primary btn-large">参加する</button>
+                    <button id="btn-start-game" class="btn btn-accent btn-large hidden">ゲーム開始</button>
+                </div>
+
+                <!-- 参加者リスト -->
+                <div class="lobby-players-wrapper">
+                    <h3 class="sub-title">エントリー中のプレイヤー (<span id="joined-count-badge">0</span>)</h3>
+                    <div id="lobby-players-list" class="lobby-players-grid">
+                        <!-- 動的生成: プレイヤーバッジ -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 画面2: メインゲーム画面 -->
+        <section id="view-game" class="view-section hidden">
+            <div class="game-stage">
+
+                <!-- 上部・サイド：対戦相手エリア（Stadium Layout） -->
+                <div id="opponents-container" class="opponents-layout">
+                    <!-- 動的生成: 対戦相手カード -->
+                </div>
+
+                <!-- 中央：お題表示エリア -->
+                <div class="topic-billboard">
+                    <div class="billboard-header">
+                        <span id="game-round-indicator" class="round-badge">ROUND 1</span>
+                        <span id="game-mode-indicator" class="round-badge mode-badge">スタンダード</span>
+                        <span class="sub-rule-text">AI判定の「2位」を狙え！</span>
+                    </div>
+                    <div class="topic-content">
+                        <div class="topic-label">お題</div>
+                        <h2 id="current-topic-text" class="topic-question">読み込み中...</h2>
+                    </div>
+                </div>
+
+                <!-- 手前中央：自陣（自分）回答エリア -->
+                <div class="my-action-pod">
+                    <div class="pod-header">
+                        <div class="pod-player-info">
+                            <span class="label">あなた:</span>
+                            <strong id="my-pod-name" class="name">プレイヤー</strong>
+                            <span class="pod-score-badge"><strong id="my-pod-score">0</strong> pts</span>
+                        </div>
+                        <div class="pod-lamp-wrap">
+                            <span class="lamp-label">状況</span>
+                            <span id="my-status-lamp" class="status-lamp off">未完了</span>
+                        </div>
+                    </div>
+
+                    <!-- 回答入力・送信エリア -->
+                    <div class="answer-form-wrap">
+                        <div class="input-row">
+                            <input type="text" id="input-answer" class="input-answer-field"
+                                placeholder="2番目にメジャーだと思う回答を入力..." maxlength="50" autocomplete="off" />
+                            <button id="btn-submit-answer" class="btn btn-submit" disabled>回答する</button>
+                        </div>
+                        <!-- 送信済み回答の常時確認エリア -->
+                        <div id="my-submitted-answer-box" class="submitted-confirmation hidden">
+                            <span class="check-icon">✓</span> 送信した回答: <strong id="submitted-answer-text">--</strong>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 画面3: ラウンドリザルト画面 (2カラムGrid構造) -->
+        <section id="view-round-result" class="view-section hidden">
+            <div class="result-card">
+                <div class="result-header">
+                    <div class="result-title-area">
+                        <span id="result-round-badge" class="round-badge">ROUND 1 結果</span>
+                        <h2 class="result-topic-display">お題: <span id="result-topic-text">--</span></h2>
+                    </div>
+                    <!-- 前面トラッカー：次ラウンド準備状況ランプ -->
+                    <div class="ready-tracker-panel">
+                        <div class="ready-title">次ラウンド準備状況</div>
+                        <div id="result-ready-lamps" class="ready-lamp-group">
+                            <!-- 動的生成: 各プレイヤーの準備ランプ -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI総評 -->
+                <div id="ai-summary-box" class="ai-summary-card">
+                    <span class="ai-badge">AI総評</span>
+                    <p id="ai-summary-text" class="ai-summary-p">判定中...</p>
+                </div>
+
+                <!-- 2カラムGrid構造のリザルトリスト -->
+                <div class="result-grid-container">
+                    <div class="grid-header-row">
+                        <div class="grid-col col-player-header">プレイヤー / 獲得ポイント</div>
+                        <div class="grid-col col-answer-header">提出回答（タップでAI解説）</div>
+                    </div>
+                    <div id="round-result-list" class="grid-body">
+                        <!-- 動的生成: 2カラムGrid行 -->
+                    </div>
+                </div>
+
+                <!-- 次へ進行アクションボタン -->
+                <div class="result-footer-bar">
+                    <button id="btn-next-round" class="btn btn-accent btn-large">
+                        次へ進む（準備完了）
+                    </button>
+                    <p class="wait-note">全員が「次へ進む」を押すと次のラウンドに進みます。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 画面4: 最終対戦結果画面 -->
+        <section id="view-final-result" class="view-section hidden">
+            <div class="final-card">
+                <!-- 優勝スポットライト演出エリア -->
+                <div class="winner-spotlight">
+                    <div class="crown-icon">👑</div>
+                    <h2 class="champion-announcement">THE 2ND CHAMPION</h2>
+                    <div id="winner-name-display" class="winner-name">プレイヤー名</div>
+                    <p id="winner-reason-desc" class="winner-pts-desc">見事勝利し、2位マスターに輝きました！</p>
+                </div>
+
+                <!-- 最終順位ランキング -->
+                <div class="final-rankings-box">
+                    <h3 class="sub-title">最終順位リスト</h3>
+                    <div id="final-standings-list" class="final-standings-table">
+                        <!-- 動的生成: 順位リスト -->
+                    </div>
+                </div>
+
+                <!-- ボタン配置（個別ソケットID単位） -->
+                <div class="final-action-buttons">
+                    <button id="btn-final-rematch" class="btn btn-primary btn-large">再戦（ロビー待機）</button>
+                    <button id="btn-final-leave" class="btn btn-secondary btn-large">退出する</button>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- モーダル1: プレイヤー設定モーダル -->
+    <div id="modal-settings" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="modal-title">設定</h3>
+
+            <!-- プレイヤー名変更 -->
+            <div class="form-group">
+                <label for="settings-player-name">プレイヤー名（最大16文字）:</label>
+                <input type="text" id="settings-player-name" class="input-text" maxlength="16" placeholder="名前を入力...">
+            </div>
+
+            <!-- ホスト専用：ゲーム強制終了ボタン（ゲーム進行中のみ表示） -->
+            <div id="host-game-control-area" class="host-danger-zone hidden">
+                <div class="exp-divider"></div>
+                <label class="danger-label">ホスト専用操作:</label>
+                <button id="btn-force-end-game" class="btn btn-danger btn-full">
+                    ⏹️ 現在のポイントでゲームを終了
+                </button>
+                <span class="danger-hint">※即座に最終結果画面へ遷移し、現在の順位を確定します。</span>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-close-settings" class="btn btn-secondary">閉じる</button>
+                <button id="btn-save-settings" class="btn btn-primary">名前を保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダル2: AI詳細解説ポップアップモーダル -->
+    <div id="modal-explanation" class="modal-backdrop hidden">
+        <div class="modal-content modal-explanation-box">
+            <div class="modal-header-with-badge">
+                <span id="modal-exp-rank-badge" class="badge">第2位</span>
+                <h3 id="modal-exp-canonical-name" class="modal-title">回答名</h3>
+            </div>
+            <div class="modal-body-content">
+                <div class="exp-row">
+                    <span class="exp-label">元の入力:</span>
+                    <span id="modal-exp-raw-answer" class="exp-value">--</span>
+                </div>
+                <div class="exp-row">
+                    <span class="exp-label">回答者:</span>
+                    <span id="modal-exp-player-name" class="exp-value">--</span>
+                </div>
+                <div class="exp-divider"></div>
+                <div class="exp-commentary-box">
+                    <span class="exp-ai-tag">AI判定理由・解説</span>
+                    <p id="modal-exp-text" class="exp-ai-text">読み込み中...</p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="btn-close-explanation" class="btn btn-primary">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO クライアント -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

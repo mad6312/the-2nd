@@ -1,0 +1,27 @@
+{
+    "name": "the-2nd-game",
+    "version": "1.0.0",
+    "description": "お題に対してあえて2番目にメジャーな回答を狙うリアルタイム対戦心理ゲーム",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "keywords": [
+        "game",
+        "socket.io",
+        "gemini",
+        "ai"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@google/generative-ai": "^0.24.0",
+        "dotenv": "^16.4.7",
+        "express": "^4.21.2",
+        "socket.io": "^4.8.1"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.9"
+    }
+}
